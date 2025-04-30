@@ -272,7 +272,7 @@ class ConfigApp(App[Optional[Dict[str, Any]]]):
         if event.value: # Use OpenAI
             # Store current local URL before overwriting
             self._current_local_llm_url = llm_url_input.value
-            llm_url_input.value = "https://api.openai.com/v1" # Common OpenAI endpoint
+            llm_url_input.value = "https://api.openai.com"
             llm_url_input.disabled = True
             openai_key_input.disabled = False
             openai_key_input.focus()

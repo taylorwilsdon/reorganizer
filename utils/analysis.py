@@ -167,7 +167,7 @@ def get_llm_organization_plan(
     # --- Construct Prompt ---
     # Base prompt asking for a JSON list of move operations
     prompt = f"""Analyze the following list of files found within the directory '{os.path.basename(scan_path)}'.
-Propose a reorganization plan to improve the structure. Focus on common patterns like grouping similar file types (documents, images, code), moving desktop clutter (like screenshots) into appropriate folders, etc.
+You have been provided with a list of files and your task is to propose a pragmatic, straightforward reorganization plan to improve the structure. Focus on common patterns such as grouping similar file types (documents, images, code), moving clutter like screenshots into a Screenshots folder in the same directory and so on. If there are lots of document files on the desktop, suggest moving them into the Documents folder. 
 
 File List:{warning}
 {file_list_str}
@@ -190,7 +190,7 @@ JSON Response:
     if use_openai:
         # Adjust for OpenAI API format (Chat Completions is preferred)
         # Assuming v1 endpoint structure
-        openai_url = api_url.rstrip('/') + "/chat/completions"
+        openai_url = api_url.rstrip('/') + "/v1/chat/completions"
         headers["Authorization"] = f"Bearer {api_key}"
         data = {
             "model": model,
@@ -198,6 +198,12 @@ JSON Response:
             "temperature": 0.2, # Lower temperature for more deterministic JSON output
             "response_format": {"type": "json_object"} # Request JSON output if supported
         }
+        try:
+            with open("app.log", "a") as log_file:
+                log_file.write(f"{openai_url}, data: {data}")
+        except Exception as log_e:
+            print(f"Warning: Failed to write to app.log: {log_e}")
+
         # Remove unsupported keys for OpenAI
         data.pop("prompt", None)
         data.pop("stream", None)
@@ -241,27 +247,36 @@ JSON Response:
             return [], None
 
         try:
-            # Log raw content to app.log for debugging TUI apps
             try:
                 with open("app.log", "a") as log_file:
                     log_file.write(f"DEBUG: Raw content before JSON parsing: >>>{content}<<<\n")
             except Exception as log_e:
-                print(f"Warning: Failed to write to app.log: {log_e}") # Fallback print
-            organization_plan = json.loads(content)
+                print(f"Warning: Failed to write to app.log: {log_e}")
+            parsed_json = json.loads(content)
+            organization_plan = None # Initialize
 
-            # Handle cases where LLM returns a single object instead of a list
-            if isinstance(organization_plan, dict):
+            # Check if response is an object with a "moves" OR "response" key containing a list
+            if isinstance(parsed_json, dict):
+                if "moves" in parsed_json and isinstance(parsed_json["moves"], list):
+                    organization_plan = parsed_json["moves"]
+                elif "response" in parsed_json and isinstance(parsed_json["response"], list):
+                     organization_plan = parsed_json["response"] # Handle "response" key
+
+            # ELSE IF: Check if response is already a list (original expected format)
+            elif isinstance(parsed_json, list):
+                 organization_plan = parsed_json
+            # ELSE IF: Handle cases where LLM returns a single object directly (previous fix)
+            elif isinstance(parsed_json, dict):
                 # Check if it looks like a valid plan item before wrapping
-                if "source" in organization_plan and "destination" in organization_plan:
-                    organization_plan = [organization_plan]
-                else:
-                    # If it's a dict but not a valid plan item, raise error
-                    raise ValueError("Response is a JSON object but not a valid plan item.")
+                if "source" in parsed_json and "destination" in parsed_json:
+                    organization_plan = [parsed_json] # Wrap the single object in a list
+                # else: # If it's a dict but not a valid plan item or the 'moves' structure, it's an error handled below
 
-            # Basic validation of the plan structure (now works for original lists and wrapped objects)
+            # Final validation: Ensure we ended up with a list
             if not isinstance(organization_plan, list):
-                 # This error should ideally not be hit now if parsing succeeded, but keep as safeguard
-                raise ValueError("Response is not a JSON list or a single valid plan object.")
+                 # This catches cases where parsing succeeded but the structure was unexpected
+                 # (e.g., a dict without 'moves' or valid 'source'/'destination')
+                 raise ValueError(f"LLM response was not a JSON list, a single plan object, or an object with a 'moves' list. Parsed: {parsed_json}")
             for item in organization_plan:
                 if not isinstance(item, dict) or "source" not in item or "destination" not in item:
                     raise ValueError("Invalid item structure in the list. Missing 'source' or 'destination'.")
