@@ -1,136 +1,137 @@
-# 📂 Reorganizer
+<div align="center">
 
-![Python 3.12+](https://img.shields.io/badge/python-3.12%2B-blue?logo=python)
-![Textual TUI](https://img.shields.io/badge/UI-Textual-8a2be2?logo=terminal)
-![License MIT](https://img.shields.io/badge/license-MIT-green)
-![Made with 🦙](https://img.shields.io/badge/LLM-Ollama%20%7C%20OpenAI-ff69b4)
+# Reorganizer
 
-> **Zero-cloud, zero-hassle file re-organizer powered by fully local Large Language Models.**  
-> Bring order to chaotic folders in seconds - completely private, safe and reproducible.
+A terminal app that asks an LLM to sort a directory, shows you the proposed moves, and waits for your approval before changing anything.
 
----
+<p>
+  <a href="https://www.python.org/downloads/"><img alt="Python 3.12+" src="https://img.shields.io/badge/Python-3.12%2B-3776AB?logo=python&logoColor=white"></a>
+  <a href="https://textual.textualize.io/"><img alt="Textual UI" src="https://img.shields.io/badge/UI-Textual-8A2BE2"></a>
+  <a href="https://ollama.com/"><img alt="Ollama and OpenAI" src="https://img.shields.io/badge/LLM-Ollama%20%7C%20OpenAI-555555"></a>
+  <a href="LICENSE"><img alt="MIT License" src="https://img.shields.io/badge/License-MIT-2EA44F"></a>
+</p>
 
-## ✨ Why Reorganizer?
+[How it works](#how-it-works) · [Install](#installation) · [Usage](#usage) · [Configuration](#configuration)
 
-| 🔒 100 % Local | ⚡ Blazing-Fast | 🧠 LLM-Smart |
-|---------------|---------------|--------------|
-| Runs completely offline with vLLM, Ollama, LMStudio or any OpenAI-compatible endpoint—your data never leaves your machine. | Multi-threaded directory walk + streaming chunked prompts keep even huge codebases responsive. | Automatic model detection chooses the smallest model that can handle your corpus; deep heuristics craft an optimal folder hierarchy before anything is moved. |
+</div>
 
----
+Reorganizer recursively scans a folder and sends its relative file paths to either a local Ollama server or the OpenAI API. The selected model returns a list of file moves, which the app presents in a Textual interface before you choose whether to apply the plan.
 
-## 🚀 Features
+No file contents are sent to the model. Reorganizer only includes relative paths in the request. If you use OpenAI, those paths leave your machine. A local model keeps the request local.
 
-| Category | Highlights |
-|----------|------------|
-| **Rich Interactive CLI** | • Textual-powered UI with mouse/keyboard shortcuts<br>• Live progress bars & diff view |
-| **Automatic Model Detection** | • Probes your LLM endpoint and lists available models<br>• Scores them on context window & cost before selection |
-| **Smart Restructure Engine** | • Token-aware chunking → semantic grouping<br>• Suggests new folders (e.g. `docs/`, `tests/`) with confidence scores<br>• Detects duplicates, temp files, & orphaned assets |
-| **Dry-Run Safety** | • Full preview table of planned moves/renames<br>• Per-file accept ✚ / skip ⨯ toggles |
-| **Config Profiles** | • Save/load multiple `config.json` sets (work, personal…) |
-| **Perf-First Design** | • Async I/O, incremental hashing, and path caching<br>• Typical 10k-file repo analyzed in **< 3 s** on an M2 Pro |
+## How it works
 
----
+1. Choose the directory you want to organize.
+2. Connect to Ollama or enable the OpenAI API.
+3. Select one of the models reported by the endpoint.
+4. Review the proposed source and destination paths.
+5. Apply the complete plan or cancel it.
 
-## 🛠 Requirements
+Reorganizer creates destination folders as needed and skips a move if the destination already exists. It also rejects paths that begin with `..`. Only files are moved; directories are left in place.
 
-* Python **3.12+**
-* Dependencies in `pyproject.toml`  
-  `textual >= 3.1.1`, `requests >= 2.32.3`
+> [!CAUTION]
+> Applying a plan moves files on disk. Review every proposed destination first, and keep a backup of anything important.
 
----
+## Features
 
-## 📦 Installation
+- Terminal interface built with Textual
+- Recursive directory scanning
+- Support for Ollama and the OpenAI API
+- Automatic model list retrieval from the configured endpoint
+- Preview table for every proposed move
+- Explicit confirmation before files are moved
+- Collision checks and basic path traversal protection
+- Saved settings in a local `config.json` file
+
+The model request is currently limited to the first 500 file paths in a scan.
+
+## Requirements
+
+- Python 3.12 or newer
+- An Ollama server with a model installed, or an OpenAI API key
+
+## Installation
+
+Clone the repository and install it in a virtual environment:
 
 ```bash
-# 1. Clone
-git clone https://github.com/yourname/reorganizer.git
+git clone https://github.com/taylorwilsdon/reorganizer.git
 cd reorganizer
 
-# 2. Create & activate a virtualenv (choose one)
-python -m venv .venv            # built-in
-# OR
-uv venv                         # lightning-fast alternative
-source .venv/bin/activate       # Windows: .venv\Scripts\activate
-
-# 3. Install
-pip install .                   # or: uv pip install .
+python -m venv .venv
+source .venv/bin/activate
+pip install .
 ```
 
----
+With `uv`:
 
-## ⚡ Quick Start
+```bash
+git clone https://github.com/taylorwilsdon/reorganizer.git
+cd reorganizer
+
+uv sync
+```
+
+## Usage
+
+Start your LLM server first if you are using a local model. The default endpoint is `http://localhost:11434`.
+
+Run the app with the virtual environment active:
 
 ```bash
 python app.py
 ```
 
-1. **Scan Path** – paste the folder you want tamed.  
-2. **Endpoint** – choose **Local LLM** (`http://localhost:11434`) *or* any OpenAI-compatible URL.  
-3. **Model** – pick from the auto-populated list.  
-4. **Analyze** – watch the live log; grab a coffee ☕.  
-5. **Review** – accept/skip individual moves.  
-6. **Organize** – hit **Enter** and enjoy a pristine directory tree.
+Or run it through `uv`:
 
----
+```bash
+uv run python app.py
+```
 
-## 💾 Configuration (`config.json`)
+In the app:
 
-```jsonc
+1. Enter a scan path.
+2. Leave **Use OpenAI API** unchecked for Ollama, or enable it and enter your API key.
+3. Select a model after the list loads.
+4. Select **Submit** to build a plan.
+5. Review the proposed moves, then select **Organize Files** or **Cancel**.
+
+Keyboard shortcuts:
+
+| Shortcut | Action |
+| --- | --- |
+| `Ctrl+S` | Save configuration |
+| `Ctrl+L` | Load configuration |
+| `Q` | Quit |
+
+## Configuration
+
+The **Save** button writes the current settings to `config.json` in the working directory. **Load** reads that file back into the app.
+
+```json
 {
-  "scan_path": "~/Downloads",
-  "use_openai": false,
+  "scan_path": "/Users/example/Downloads",
+  "use_openai_api": false,
   "llm_url": "http://localhost:11434",
-  "model": "mistral:7b-instruct",
-  "api_key": null
+  "openai_key": "",
+  "model": "llama3.2:latest"
 }
 ```
 
-Store multiple profiles (e.g. `config.work.json`) and load them on launch:  
-`python app.py --config config.work.json`
+The OpenAI API key is stored as plain text when you save the configuration. Do not commit `config.json` or share it if it contains a key.
 
----
-
-## 🏗️ Architecture at a Glance
+## Project structure
 
 ```text
-┌──────────────┐     async walk      ┌─────────────────┐
-│   Scanner    │ ──────────────────▶ │  File Registry  │
-└──────────────┘                     └────────┬────────┘
-                       metadata/embeddings     │
-                                               ▼
-                                   ┌────────────────────┐
-                                   │  LLM Analysis API  │  ⇦ local or OpenAI
-                                   └────────┬───────────┘
-                                            │  plan (JSON)
-                                            ▼
-                                 ┌────────────────────┐
-                                 │  Planner / Diff UI │
-                                 └────────┬───────────┘
-                                            │  user accepts
-                                            ▼
-                                   ┌─────────────────┐
-                                   │   Executor      │
-                                   └─────────────────┘
+app.py                  Textual application and workflow
+cli_config.py           Configuration loading and saving
+styles.py               Textual styles
+utils/file_scanner.py   Recursive directory scanner
+utils/list_models.py    Model discovery
+utils/analysis.py       LLM request and plan validation
+utils/organizer.py      File move execution
 ```
 
----
+## License
 
-## 🧑‍💻 Contributing
-
-1. Fork & branch off `main`.  
-2. Follow the **Dev Setup** in [`CONTRIBUTING.md`](CONTRIBUTING.md).  
-3. Run `pre-commit install` to keep the codebase tidy.  
-4. Open a PR—tests & readable commits appreciated!
-
----
-
-## 📝 License
-
-Released under the MIT License—see [`LICENSE`](LICENSE) for details.
-
----
-
-> **Need help?** Open an issue or join our Discussions board.  
-> **Love it?** ⭐ Star the repo & share the productivity!
-
-```
+Reorganizer is available under the [MIT License](LICENSE).
