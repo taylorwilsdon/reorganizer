@@ -2,7 +2,7 @@
 import os
 import json
 import re
-from datetime import datetime # Add datetime for formatting
+from datetime import datetime
 from typing import Optional, Dict, Any, Tuple, List, Iterator
 
 from textual import on, work
@@ -13,17 +13,10 @@ from textual.widgets import (
     Input, Label, Pretty, Checkbox, Select, Button, Header, Footer, LoadingIndicator, DataTable, Static # Add DataTable, Static
 )
 
-# Assuming these exist based on the provided example context
-try:
-    from utils.list_models import fetch_available_models, ModelFetchError
-    import cli_config
-    from styles import TEXTUAL_CSS
-except ImportError as e:
-    print(f"Error importing required modules: {e}")
-    print("Please ensure cli_config.py, styles.py, and utils/list_models.py exist.")
-    exit(1)
+from utils.list_models import fetch_available_models, ModelFetchError
+import cli_config
+from styles import TEXTUAL_CSS
 
-# Import validation components from the utils directory
 from utils.validation import (
     PathValidator,
     validate_all_app_inputs,
@@ -32,49 +25,14 @@ from utils.validation import (
 )
 from utils.file_scanner import scan, FileMeta
 from utils.analysis import analyze_directory
-from utils.organizer import organize_files # Import the new organizer function
+from utils.organizer import organize_files
 
 # --- Main App ---
 
 class ConfigApp(App[Optional[Dict[str, Any]]]):
     """Textual app for configuring the application."""
 
-    CSS = TEXTUAL_CSS + """
-    #input-form {
-        /* Styles specific to the input form area if needed */
-    }
-    .hidden {
-        display: none;
-    }
-    #results-area {
-        padding: 1;
-        border: round $accent;
-        /* Add other styles as needed */
-    }
-    #scan-indicator {
-        margin: 1 0;
-    }
-    #action-buttons {
-        margin-top: 1;
-        align: center middle;
-        height: auto;
-    }
-    #scan-results-table {
-        height: 15; /* Example height, adjust as needed */
-        border: round $accent;
-        margin-top: 1;
-    }
-    #issue-summary {
-        margin-top: 1;
-        /* Default color is fine, specific classes added below */
-    }
-    .error-text {
-        color: $error;
-    }
-    .warning-text {
-         color: $warning;
-    }
-    """ # End of CSS string
+    CSS = TEXTUAL_CSS # Use the imported CSS directly
 
     BINDINGS = [
         ("q", "quit", "Quit"),
@@ -249,9 +207,9 @@ class ConfigApp(App[Optional[Dict[str, Any]]]):
             def handle_fetch_error():
                 model_select.set_options([])
                 model_select.clear()
-                model_select.prompt = f"Error: {e}"
+                model_select.prompt = f"Error: {str(e).replace('[', '\\[').replace(']', '\\]')}"
                 model_select.disabled = True
-                self.notify(f"Error fetching models: {e}", severity="error", timeout=6)
+                self.notify(f"Error fetching models: {str(e).replace('[', '\\[').replace(']', '\\]')}", severity="error", timeout=6)
             self.call_from_thread(handle_fetch_error)
         except Exception as e:
             def handle_generic_error():
@@ -259,7 +217,7 @@ class ConfigApp(App[Optional[Dict[str, Any]]]):
                 model_select.clear()
                 model_select.prompt = "Unexpected Error"
                 model_select.disabled = True
-                self.notify(f"Unexpected error: {e}", severity="error", timeout=6)
+                self.notify(f"Unexpected error: {str(e).replace('[', '\\[').replace(']', '\\]')}", severity="error", timeout=6)
             self.call_from_thread(handle_generic_error)
 
 
@@ -376,7 +334,7 @@ class ConfigApp(App[Optional[Dict[str, Any]]]):
             # Set checkbox value *without* triggering its Changed event immediately
             # Check current state before toggling to avoid unnecessary events
             if openai_cb.value != use_openai:
-                openai_cb.action_toggle()
+                openai_cb.toggle()
 
             # Manually call the update logic *after* setting checkbox value
             # This ensures URL/Key inputs are set correctly based on the loaded 'use_openai' state

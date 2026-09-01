@@ -98,16 +98,39 @@ Horizontal {
     margin-right: 0; /* No margin on the last item */
 }
 
-/* Configuration Display Area */
-#config-display-area {
-    margin-top: 2;
-    padding: 1;
-    border: round #58a3ff; /* Accent border */
-    display: none; /* Hide initially */
-    background: #103c48; /* Slightly lighter background */
+/* Styles moved from app.py */
+#input-form {
+    /* Styles specific to the input form area if needed */
 }
-#config-display-area Label {
-    text-style: bold;
-    margin-bottom: 1;
+.hidden {
+    display: none;
+}
+#results-area {
+    padding: 1;
+    border: round $accent;
+    /* Add other styles as needed */
+}
+#scan-indicator {
+    margin: 1 0;
+}
+#action-buttons {
+    margin-top: 1;
+    align: center middle;
+    height: auto;
+}
+#scan-results-table {
+    height: 15; /* Example height, adjust as needed */
+    border: round $accent;
+    margin-top: 1;
+}
+#issue-summary {
+    margin-top: 1;
+    /* Default color is fine, specific classes added below */
+}
+.error-text {
+    color: $error;
+}
+.warning-text {
+     color: $warning;
 }
 """
